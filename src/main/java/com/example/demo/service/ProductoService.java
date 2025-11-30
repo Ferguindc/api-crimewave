@@ -47,7 +47,12 @@ public class ProductoService {
         producto.setNombre(productoDetails.getNombre());
         producto.setDescripcion(productoDetails.getDescripcion());
         producto.setPrecio(productoDetails.getPrecio());
-        producto.setImagenUrl(productoDetails.getImagenUrl());
+
+        // Solo actualizar imagenUrl si se proporciona
+        if (productoDetails.getImagenUrl() != null) {
+            producto.setImagenUrl(productoDetails.getImagenUrl());
+        }
+
         producto.setStock(productoDetails.getStock());
 
         return productoRepository.save(producto);

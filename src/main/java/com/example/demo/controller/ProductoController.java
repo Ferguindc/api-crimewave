@@ -2,12 +2,19 @@ package com.example.demo.controller;
 
 import com.example.demo.model.Producto;
 import com.example.demo.service.ProductoService;
+import com.example.demo.service.FileStorageService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -17,6 +24,9 @@ public class ProductoController {
 
     @Autowired
     private ProductoService productoService;
+
+    @Autowired
+    private FileStorageService fileStorageService;
 
     @GetMapping
     public ResponseEntity<List<Producto>> getAllProductos() {
@@ -74,6 +84,66 @@ public class ProductoController {
             productoService.deleteProducto(id);
             return ResponseEntity.ok().body("Producto eliminado correctamente");
         } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/imagen")
+    public ResponseEntity<?> uploadImagen(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            // Buscar el producto
+            Producto producto = productoService.getProductoById(id)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            // Eliminar imagen anterior si existe
+            if (producto.getImagenUrl() != null && !producto.getImagenUrl().isEmpty()) {
+                try {
+                    fileStorageService.deleteFile(producto.getImagenUrl());
+                } catch (Exception e) {
+                    // Continuar aunque falle la eliminación
+                }
+            }
+
+            // Guardar nueva imagen
+            String fileName = fileStorageService.storeFile(file);
+            producto.setImagenUrl(fileName);
+            productoService.updateProducto(id, producto);
+
+            return ResponseEntity.ok().body("Imagen subida correctamente: " + fileName);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/imagen/{fileName:.+}")
+    public ResponseEntity<Resource> getImagen(@PathVariable String fileName) {
+        try {
+            Path filePath = fileStorageService.loadFile(fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                // Determinar el tipo de contenido
+                String contentType = "application/octet-stream";
+                if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                    contentType = "image/jpeg";
+                } else if (fileName.endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (fileName.endsWith(".gif")) {
+                    contentType = "image/gif";
+                } else if (fileName.endsWith(".webp")) {
+                    contentType = "image/webp";
+                }
+
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }
