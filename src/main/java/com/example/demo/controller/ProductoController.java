@@ -3,6 +3,13 @@ package com.example.demo.controller;
 import com.example.demo.model.Producto;
 import com.example.demo.service.ProductoService;
 import com.example.demo.service.FileStorageService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -18,6 +25,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+@Tag(name = "Productos", description = "API para la gestión de productos")
 @RestController
 @RequestMapping("/api/productos")
 public class ProductoController {
@@ -28,36 +36,76 @@ public class ProductoController {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Operation(summary = "Obtener todos los productos",
+               description = "Retorna una lista con todos los productos disponibles")
+    @ApiResponse(responseCode = "200", description = "Lista de productos obtenida exitosamente")
     @GetMapping
     public ResponseEntity<List<Producto>> getAllProductos() {
         return ResponseEntity.ok(productoService.getAllProductos());
     }
 
+    @Operation(summary = "Obtener producto por ID",
+               description = "Retorna un producto específico basado en su ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Producto encontrado"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Producto> getProductoById(@PathVariable Long id) {
+    public ResponseEntity<Producto> getProductoById(
+            @Parameter(description = "ID del producto", required = true)
+            @PathVariable Long id) {
         return productoService.getProductoById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Buscar productos por nombre",
+               description = "Busca productos que contengan el texto especificado en su nombre")
+    @ApiResponse(responseCode = "200", description = "Búsqueda realizada exitosamente")
     @GetMapping("/buscar")
-    public ResponseEntity<List<Producto>> searchProductos(@RequestParam String nombre) {
+    public ResponseEntity<List<Producto>> searchProductos(
+            @Parameter(description = "Texto a buscar en el nombre del producto", required = true)
+            @RequestParam String nombre) {
         return ResponseEntity.ok(productoService.searchProductosByNombre(nombre));
     }
 
+    @Operation(summary = "Obtener productos por categoría",
+               description = "Retorna todos los productos que pertenecen a una categoría específica")
+    @ApiResponse(responseCode = "200", description = "Lista de productos de la categoría obtenida exitosamente")
     @GetMapping("/categoria/{categoriaId}")
-    public ResponseEntity<List<Producto>> getProductosByCategoria(@PathVariable Long categoriaId) {
+    public ResponseEntity<List<Producto>> getProductosByCategoria(
+            @Parameter(description = "ID de la categoría", required = true)
+            @PathVariable Long categoriaId) {
         return ResponseEntity.ok(productoService.getProductosByCategoria(categoriaId));
     }
 
+    @Operation(summary = "Crear nuevo producto",
+               description = "Crea un nuevo producto en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Producto creado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
+    })
     @PostMapping
-    public ResponseEntity<Producto> createProducto(@Valid @RequestBody Producto producto) {
+    public ResponseEntity<Producto> createProducto(
+            @Parameter(description = "Datos del producto a crear", required = true)
+            @Valid @RequestBody Producto producto) {
         Producto nuevoProducto = productoService.createProducto(producto);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
     }
 
+    @Operation(summary = "Actualizar producto",
+               description = "Actualiza los datos de un producto existente")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Producto actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProducto(@PathVariable Long id, @Valid @RequestBody Producto producto) {
+    public ResponseEntity<?> updateProducto(
+            @Parameter(description = "ID del producto a actualizar", required = true)
+            @PathVariable Long id,
+            @Parameter(description = "Nuevos datos del producto", required = true)
+            @Valid @RequestBody Producto producto) {
         try {
             Producto productoActualizado = productoService.updateProducto(id, producto);
             return ResponseEntity.ok(productoActualizado);
@@ -66,9 +114,17 @@ public class ProductoController {
         }
     }
 
+    @Operation(summary = "Agregar categorías al producto",
+               description = "Asocia múltiples categorías a un producto específico")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Categorías agregadas exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Error al agregar categorías")
+    })
     @PostMapping("/{productoId}/categorias")
     public ResponseEntity<?> addCategoriasToProducto(
+            @Parameter(description = "ID del producto", required = true)
             @PathVariable Long productoId,
+            @Parameter(description = "IDs de las categorías a agregar", required = true)
             @RequestBody Set<Long> categoriaIds) {
         try {
             Producto producto = productoService.addCategoriasToProducto(productoId, categoriaIds);
@@ -78,8 +134,16 @@ public class ProductoController {
         }
     }
 
+    @Operation(summary = "Eliminar producto",
+               description = "Elimina un producto del sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Producto eliminado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProducto(@PathVariable Long id) {
+    public ResponseEntity<?> deleteProducto(
+            @Parameter(description = "ID del producto a eliminar", required = true)
+            @PathVariable Long id) {
         try {
             productoService.deleteProducto(id);
             return ResponseEntity.ok().body("Producto eliminado correctamente");
@@ -88,9 +152,18 @@ public class ProductoController {
         }
     }
 
+    @Operation(summary = "Subir imagen del producto",
+               description = "Sube una imagen para un producto específico")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Imagen subida exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Archivo inválido")
+    })
     @PostMapping("/{id}/imagen")
     public ResponseEntity<?> uploadImagen(
+            @Parameter(description = "ID del producto", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Archivo de imagen", required = true)
             @RequestParam("file") MultipartFile file) {
         try {
             // Buscar el producto
@@ -117,8 +190,17 @@ public class ProductoController {
         }
     }
 
+    @Operation(summary = "Obtener imagen del producto",
+               description = "Retorna la imagen de un producto por nombre de archivo")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Imagen encontrada",
+                    content = @Content(mediaType = "image/*")),
+        @ApiResponse(responseCode = "404", description = "Imagen no encontrada")
+    })
     @GetMapping("/imagen/{fileName:.+}")
-    public ResponseEntity<Resource> getImagen(@PathVariable String fileName) {
+    public ResponseEntity<Resource> getImagen(
+            @Parameter(description = "Nombre del archivo de imagen", required = true)
+            @PathVariable String fileName) {
         try {
             Path filePath = fileStorageService.loadFile(fileName);
             Resource resource = new UrlResource(filePath.toUri());
