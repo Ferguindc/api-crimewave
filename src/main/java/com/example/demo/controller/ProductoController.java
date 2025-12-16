@@ -6,7 +6,6 @@ import com.example.demo.service.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -85,8 +84,61 @@ public class ProductoController {
         @ApiResponse(responseCode = "201", description = "Producto creado exitosamente"),
         @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
     })
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Producto> createProducto(
+            @Parameter(description = "Nombre del producto", required = true)
+            @RequestParam String nombre,
+            @Parameter(description = "Descripción del producto")
+            @RequestParam(required = false) String descripcion,
+            @Parameter(description = "Precio del producto", required = true)
+            @RequestParam String precio,
+            @Parameter(description = "Stock del producto")
+            @RequestParam(required = false, defaultValue = "0") Integer stock,
+            @Parameter(description = "IDs de categorías (separados por coma)")
+            @RequestParam(required = false) String categoriaIds,
+            @Parameter(description = "Archivo de imagen del producto")
+            @RequestParam(required = false) MultipartFile imagen) {
+        try {
+            // Crear el producto
+            Producto producto = new Producto();
+            producto.setNombre(nombre);
+            producto.setDescripcion(descripcion);
+            producto.setPrecio(new java.math.BigDecimal(precio));
+            producto.setStock(stock);
+
+            // Guardar imagen si se proporciona
+            if (imagen != null && !imagen.isEmpty()) {
+                String fileName = fileStorageService.storeFile(imagen);
+                producto.setImagenUrl(fileName);
+            }
+
+            // Crear el producto
+            Producto nuevoProducto = productoService.createProducto(producto);
+
+            // Agregar categorías si se proporcionan
+            if (categoriaIds != null && !categoriaIds.trim().isEmpty()) {
+                String[] idsArray = categoriaIds.split(",");
+                Set<Long> categoriaIdSet = new java.util.HashSet<>();
+                for (String id : idsArray) {
+                    categoriaIdSet.add(Long.parseLong(id.trim()));
+                }
+                nuevoProducto = productoService.addCategoriasToProducto(nuevoProducto.getId(), categoriaIdSet);
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al crear producto: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Crear nuevo producto (JSON)",
+               description = "Crea un nuevo producto en el sistema usando JSON (sin imagen)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Producto creado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
+    })
+    @PostMapping(value = "/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Producto> createProductoJson(
             @Parameter(description = "Datos del producto a crear", required = true)
             @Valid @RequestBody Producto producto) {
         Producto nuevoProducto = productoService.createProducto(producto);
@@ -100,8 +152,70 @@ public class ProductoController {
         @ApiResponse(responseCode = "404", description = "Producto no encontrado"),
         @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
     })
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProducto(
+            @Parameter(description = "ID del producto a actualizar", required = true)
+            @PathVariable Long id,
+            @Parameter(description = "Nombre del producto")
+            @RequestParam(required = false) String nombre,
+            @Parameter(description = "Descripción del producto")
+            @RequestParam(required = false) String descripcion,
+            @Parameter(description = "Precio del producto")
+            @RequestParam(required = false) String precio,
+            @Parameter(description = "Stock del producto")
+            @RequestParam(required = false) Integer stock,
+            @Parameter(description = "Archivo de imagen del producto")
+            @RequestParam(required = false) MultipartFile imagen) {
+        try {
+            // Buscar el producto existente
+            Producto producto = productoService.getProductoById(id)
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            // Actualizar solo los campos proporcionados
+            if (nombre != null) {
+                producto.setNombre(nombre);
+            }
+            if (descripcion != null) {
+                producto.setDescripcion(descripcion);
+            }
+            if (precio != null) {
+                producto.setPrecio(new java.math.BigDecimal(precio));
+            }
+            if (stock != null) {
+                producto.setStock(stock);
+            }
+
+            // Actualizar imagen si se proporciona
+            if (imagen != null && !imagen.isEmpty()) {
+                // Eliminar imagen anterior si existe
+                if (producto.getImagenUrl() != null && !producto.getImagenUrl().isEmpty()) {
+                    try {
+                        fileStorageService.deleteFile(producto.getImagenUrl());
+                    } catch (Exception e) {
+                        // Continuar aunque falle la eliminación
+                    }
+                }
+                // Guardar nueva imagen
+                String fileName = fileStorageService.storeFile(imagen);
+                producto.setImagenUrl(fileName);
+            }
+
+            Producto productoActualizado = productoService.updateProducto(id, producto);
+            return ResponseEntity.ok(productoActualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Actualizar producto (JSON)",
+               description = "Actualiza los datos de un producto existente usando JSON (sin imagen)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Producto actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Datos de producto inválidos")
+    })
+    @PutMapping(value = "/{id}/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateProductoJson(
             @Parameter(description = "ID del producto a actualizar", required = true)
             @PathVariable Long id,
             @Parameter(description = "Nuevos datos del producto", required = true)

@@ -2,7 +2,6 @@ package com.example.demo.service;
 
 import com.example.demo.model.Pedido;
 import com.example.demo.model.DetallePedido;
-import com.example.demo.model.Usuario;
 import com.example.demo.model.Producto;
 import com.example.demo.repository.PedidoRepository;
 import com.example.demo.repository.UsuarioRepository;
@@ -11,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,36 +39,56 @@ public class PedidoService {
     }
 
     public List<Pedido> getPedidosByEstado(String estado) {
-        return pedidoRepository.findByEstado(estado);
+        return pedidoRepository.findByEstadoPedido(estado);
+    }
+
+    public List<Pedido> getPedidosByEstadoPago(String estadoPago) {
+        return pedidoRepository.findByEstadoPago(estadoPago);
+    }
+
+    public List<Pedido> getPedidosByEmail(String email) {
+        return pedidoRepository.findByEmailCliente(email);
     }
 
     @Transactional
     public Pedido createPedido(Pedido pedido) {
-        // Verificar que el usuario existe
-        Usuario usuario = usuarioRepository.findById(pedido.getUsuario().getId())
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        pedido.setUsuario(usuario);
-        pedido.setFecha(LocalDateTime.now());
-        pedido.setEstado("pendiente");
+        // Establecer fecha y estados por defecto
+        pedido.setFechaPedido(LocalDateTime.now());
+        if (pedido.getEstadoPedido() == null) {
+            pedido.setEstadoPedido("pendiente");
+        }
+        if (pedido.getEstadoPago() == null) {
+            pedido.setEstadoPago("pendiente");
+        }
 
         // Calcular el total del pedido
-        BigDecimal total = BigDecimal.ZERO;
+        double total = 0.0;
         for (DetallePedido detalle : pedido.getDetalles()) {
-            // Verificar que el producto existe
-            Producto producto = productoRepository.findById(detalle.getProducto().getId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + detalle.getProducto().getId()));
+            // Si se proporciona productoId, obtener información del producto
+            if (detalle.getProductoId() != null) {
+                Producto producto = productoRepository.findById(detalle.getProductoId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + detalle.getProductoId()));
 
-            detalle.setProducto(producto);
-            detalle.setPedido(pedido);
-
-            // Si no se proporciona precio unitario, usar el precio del producto
-            if (detalle.getPrecioUnit() == null) {
-                detalle.setPrecioUnit(producto.getPrecio());
+                // Copiar información del producto al detalle
+                if (detalle.getNombreProducto() == null) {
+                    detalle.setNombreProducto(producto.getNombre());
+                }
+                if (detalle.getPrecioUnitario() == null) {
+                    detalle.setPrecioUnitario(producto.getPrecio().doubleValue());
+                }
+                if (detalle.getImagenUrl() == null) {
+                    detalle.setImagenUrl(producto.getImagenUrl());
+                }
             }
 
-            BigDecimal subtotal = detalle.getPrecioUnit().multiply(new BigDecimal(detalle.getCantidad()));
-            total = total.add(subtotal);
+            // Establecer la relación con el pedido
+            detalle.setPedido(pedido);
+
+            // Calcular subtotal
+            if (detalle.getCantidad() != null && detalle.getPrecioUnitario() != null) {
+                detalle.setSubtotal(detalle.getCantidad() * detalle.getPrecioUnitario());
+                total += detalle.getSubtotal();
+            }
         }
 
         pedido.setTotal(total);
@@ -82,7 +100,15 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Pedido no encontrado con id: " + id));
 
-        pedido.setEstado(nuevoEstado);
+        pedido.setEstadoPedido(nuevoEstado);
+        return pedidoRepository.save(pedido);
+    }
+
+    public Pedido updateEstadoPago(Long id, String nuevoEstadoPago) {
+        Pedido pedido = pedidoRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Pedido no encontrado con id: " + id));
+
+        pedido.setEstadoPago(nuevoEstadoPago);
         return pedidoRepository.save(pedido);
     }
 

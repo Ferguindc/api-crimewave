@@ -92,27 +92,43 @@ public class DataLoader implements CommandLineRunner {
 
         // Crear un pedido de prueba
         Pedido pedido = new Pedido();
-        pedido.setUsuario(cliente);
-        pedido.setFecha(LocalDateTime.now());
-        pedido.setEstado("pendiente");
+        pedido.setUsuarioId(cliente.getId());
+        pedido.setNombreCliente(cliente.getNombre());
+        pedido.setEmailCliente(cliente.getEmail());
+        pedido.setTelefonoCliente("555-1234");
+        pedido.setDireccionEnvio("Calle Principal 123");
+        pedido.setCiudadEnvio("Santiago");
+        pedido.setComunaEnvio("Providencia");
+        pedido.setNotasPedido("Entregar en horario de oficina");
+        pedido.setMetodoPago("tarjeta_credito");
+        pedido.setEstadoPago("pagado");
+        pedido.setEstadoPedido("pendiente");
+        pedido.setFechaPedido(LocalDateTime.now());
 
         DetallePedido detalle1 = new DetallePedido();
         detalle1.setPedido(pedido);
-        detalle1.setProducto(camiseta);
+        detalle1.setProductoId(camiseta.getId());
+        detalle1.setNombreProducto(camiseta.getNombre());
         detalle1.setCantidad(2);
-        detalle1.setPrecioUnit(camiseta.getPrecio());
+        detalle1.setTalla("M");
+        detalle1.setPrecioUnitario(camiseta.getPrecio().doubleValue());
+        detalle1.setSubtotal(camiseta.getPrecio().doubleValue() * 2);
+        detalle1.setImagenUrl(camiseta.getImagenUrl());
 
         DetallePedido detalle2 = new DetallePedido();
         detalle2.setPedido(pedido);
-        detalle2.setProducto(gorra);
+        detalle2.setProductoId(gorra.getId());
+        detalle2.setNombreProducto(gorra.getNombre());
         detalle2.setCantidad(1);
-        detalle2.setPrecioUnit(gorra.getPrecio());
+        detalle2.setTalla("Única");
+        detalle2.setPrecioUnitario(gorra.getPrecio().doubleValue());
+        detalle2.setSubtotal(gorra.getPrecio().doubleValue());
+        detalle2.setImagenUrl(gorra.getImagenUrl());
 
         pedido.setDetalles(Arrays.asList(detalle1, detalle2));
 
         // Calcular total
-        BigDecimal total = camiseta.getPrecio().multiply(new BigDecimal(2))
-                .add(gorra.getPrecio());
+        double total = detalle1.getSubtotal() + detalle2.getSubtotal();
         pedido.setTotal(total);
 
         pedidoRepository.save(pedido);

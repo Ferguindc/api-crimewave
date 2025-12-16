@@ -23,31 +23,65 @@ public class Pedido {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "El usuario es obligatorio")
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    // Información del usuario
+    @Column(name = "usuario_id")
+    private Long usuarioId;
 
-    @Column(nullable = false)
-    private LocalDateTime fecha;
+    @Column(name = "nombre_cliente", length = 100)
+    private String nombreCliente;
 
-    @Column(precision = 10, scale = 2)
-    private BigDecimal total;
+    @Column(name = "email_cliente", length = 100)
+    private String emailCliente;
 
-    @Column(length = 50)
-    private String estado; // pendiente, pagado, enviado, entregado, cancelado
+    @Column(name = "telefono_cliente", length = 20)
+    private String telefonoCliente;
 
+    // Información de envío
+    @Column(name = "direccion_envio", length = 255)
+    private String direccionEnvio;
+
+    @Column(name = "ciudad_envio", length = 100)
+    private String ciudadEnvio;
+
+    @Column(name = "comuna_envio", length = 100)
+    private String comunaEnvio;
+
+    @Column(name = "notas_pedido", columnDefinition = "TEXT")
+    private String notasPedido;
+
+    // Información de pago
+    @Column(name = "metodo_pago", length = 50)
+    private String metodoPago;
+
+    @Column(name = "estado_pago", length = 50)
+    private String estadoPago; // pendiente, pagado, fallido, reembolsado
+
+    // Estado del pedido
+    @Column(name = "estado_pedido", length = 50)
+    private String estadoPedido; // pendiente, confirmado, enviado, entregado, cancelado
+
+    // Total y fecha
+    @Column
+    private Double total;
+
+    @Column(name = "fecha_pedido", nullable = false)
+    private LocalDateTime fechaPedido;
+
+    // Relación con detalles
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<DetallePedido> detalles = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
-        if (fecha == null) {
-            fecha = LocalDateTime.now();
+        if (fechaPedido == null) {
+            fechaPedido = LocalDateTime.now();
         }
-        if (estado == null) {
-            estado = "pendiente";
+        if (estadoPedido == null) {
+            estadoPedido = "pendiente";
+        }
+        if (estadoPago == null) {
+            estadoPago = "pendiente";
         }
     }
 }

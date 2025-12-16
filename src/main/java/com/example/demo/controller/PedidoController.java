@@ -107,6 +107,37 @@ public class PedidoController {
         }
     }
 
+    @Operation(summary = "Actualizar estado de pago",
+               description = "Actualiza el estado de pago de un pedido específico")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Estado de pago actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Pedido no encontrado")
+    })
+    @PatchMapping("/{id}/estado-pago")
+    public ResponseEntity<?> updateEstadoPago(
+            @Parameter(description = "ID del pedido", required = true)
+            @PathVariable Long id,
+            @Parameter(description = "Nuevo estado de pago", required = true)
+            @RequestBody Map<String, String> body) {
+        try {
+            String nuevoEstadoPago = body.get("estadoPago");
+            Pedido pedidoActualizado = pedidoService.updateEstadoPago(id, nuevoEstadoPago);
+            return ResponseEntity.ok(pedidoActualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Obtener pedidos por email",
+               description = "Retorna todos los pedidos realizados por un email específico")
+    @ApiResponse(responseCode = "200", description = "Lista de pedidos obtenida exitosamente")
+    @GetMapping("/email/{email}")
+    public ResponseEntity<List<Pedido>> getPedidosByEmail(
+            @Parameter(description = "Email del cliente", required = true)
+            @PathVariable String email) {
+        return ResponseEntity.ok(pedidoService.getPedidosByEmail(email));
+    }
+
     @Operation(summary = "Eliminar pedido",
                description = "Elimina un pedido del sistema")
     @ApiResponses(value = {

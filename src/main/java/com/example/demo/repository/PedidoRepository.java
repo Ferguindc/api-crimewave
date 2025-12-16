@@ -9,6 +9,8 @@ import java.util.List;
 @Repository
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByUsuarioId(Long usuarioId);
-    List<Pedido> findByEstado(String estado);
+    List<Pedido> findByEstadoPedido(String estadoPedido);
+    List<Pedido> findByEstadoPago(String estadoPago);
+    List<Pedido> findByEmailCliente(String emailCliente);
 }
 
