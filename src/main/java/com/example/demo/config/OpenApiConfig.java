@@ -1,8 +1,12 @@
 package com.example.demo.config;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +14,11 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+@OpenAPIDefinition(
+        info = @Info(title = "Api Crimewave", version = "v1"),
+        security = @SecurityRequirement(name = "bearerAuth")
+)
+@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 @Configuration
 public class OpenApiConfig {
 
@@ -28,7 +37,7 @@ public class OpenApiConfig {
                 .name("MIT License")
                 .url("https://choosealicense.com/licenses/mit/");
 
-        Info info = new Info()
+        io.swagger.v3.oas.models.info.Info info = new io.swagger.v3.oas.models.info.Info()
                 .title("CrimeWave API")
                 .version("1.0")
                 .contact(contact)
