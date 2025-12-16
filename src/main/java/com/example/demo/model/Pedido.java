@@ -1,14 +1,11 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,12 +57,9 @@ public class Pedido {
     @Column(name = "estado_pedido", length = 50)
     private String estadoPedido; // pendiente, confirmado, enviado, entregado, cancelado
 
-    // Total y fecha
+    // Total
     @Column
     private Double total;
-
-    @Column(name = "fecha_pedido", nullable = false)
-    private LocalDateTime fechaPedido;
 
     // Relación con detalles
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -74,9 +68,6 @@ public class Pedido {
 
     @PrePersist
     protected void onCreate() {
-        if (fechaPedido == null) {
-            fechaPedido = LocalDateTime.now();
-        }
         if (estadoPedido == null) {
             estadoPedido = "pendiente";
         }

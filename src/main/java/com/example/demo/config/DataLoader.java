@@ -103,7 +103,6 @@ public class DataLoader implements CommandLineRunner {
         pedido.setMetodoPago("tarjeta_credito");
         pedido.setEstadoPago("pagado");
         pedido.setEstadoPedido("pendiente");
-        pedido.setFechaPedido(LocalDateTime.now());
 
         DetallePedido detalle1 = new DetallePedido();
         detalle1.setPedido(pedido);
